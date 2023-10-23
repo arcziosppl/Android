@@ -1,87 +1,90 @@
 package com.example.waluty;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-
+import java.text.DecimalFormat;
 import org.json.JSONException;
-import org.json.JSONObject;
+
 
 public class MainActivity extends AppCompatActivity {
 
-    // member variable for holding the ImageView
-    // in which images will be loaded
-    Button nextDogButton;
+    private static final DecimalFormat decfor = new DecimalFormat("0.00");
+
+    Button calculate_;
     EditText num;
+    TextView czk,eur,rub,usd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        nextDogButton = findViewById(R.id.nextDogButton);
+        calculate_ = findViewById(R.id.nextDogButton);
         num = findViewById(R.id.editTextNumber);
-        nextDogButton.setOnClickListener(View -> loadDogImage());
+        czk = findViewById(R.id.textView);
+        eur = findViewById(R.id.textView3);
+        rub = findViewById(R.id.textView4);
+        usd = findViewById(R.id.textView2);
+
+
+        calculate_.setOnClickListener(View -> calculate());
     }
 
-    // function for making a HTTP request using Volley and
-    // inserting the image in the ImageView using Glide library
-    private void loadDogImage() {
+    @NonNull
+    private String format(double val,String name){
 
-        // getting a new volley request queue for making new requests
+        double to_decimal_2 = Double.parseDouble(decfor.format(val));
+
+        return (name + ": " +  to_decimal_2);
+    }
+
+    private void calculate() {
+
         RequestQueue volleyQueue = Volley.newRequestQueue(MainActivity.this);
-        // url of the api through which we get random dog images
+
         String url = "https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_FYFdl2yJ6Unrgc48mf3d8mhc7uisvGZkVcixSRCf&currencies=EUR%2CUSD%2CCZK%2CRUB&base_currency=PLN";
 
-        // since the response we get from the api is in JSON, we
-        // need to use `JsonObjectRequest` for parsing the
-        // request response
+        @SuppressLint("SetTextI18n")
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
-                // we are using GET HTTP request method
                 Request.Method.GET,
-                // url we want to send the HTTP request to
                 url,
-                // this parameter is used to send a JSON object to the
-                // server, since this is not required in our case,
-                // we are keeping it `null`
                 null,
-
-                // lambda function for handling the case
-                // when the HTTP request succeeds
                 response -> {
                     try {
-                        Double CZK = response.getJSONObject("data").getDouble("CZK");
-                        Double EUR = response.getJSONObject("data").getDouble("EUR");
-                        Double USD = response.getJSONObject("data").getDouble("USD");
-                        Double RUB = response.getJSONObject("data").getDouble("RUB");
-                        System.out.println(num.getText());
+                        if(num.getText().length() > 0) {
+                            double CZK = response.getJSONObject("data").getDouble("CZK") * Double.parseDouble(num.getText().toString());
+                            double EUR = response.getJSONObject("data").getDouble("EUR") * Double.parseDouble(num.getText().toString());
+                            double USD = response.getJSONObject("data").getDouble("USD") * Double.parseDouble(num.getText().toString());
+                            double RUB = response.getJSONObject("data").getDouble("RUB") * Double.parseDouble(num.getText().toString());
+
+                           eur.setText(format(EUR, "EUR"));
+                           czk.setText(format(CZK, "CZK"));
+                           usd.setText(format(USD, "USD"));
+                           rub.setText(format(RUB, "RUB"));
+                        }else {
+                            Toast.makeText(MainActivity.this, "Proszę wprowadzić poprawną wartość!", Toast.LENGTH_LONG).show();
+                        }
                     } catch (JSONException e) {
                         throw new RuntimeException(e);
                     }
                 },
 
-                // lambda function for handling the case
-                // when the HTTP request fails
-                (Response.ErrorListener) error -> {
-                    // make a Toast telling the user
-                    // that something went wrong
-                    Toast.makeText(MainActivity.this, "Some error occurred! Cannot fetch dog image", Toast.LENGTH_LONG).show();
-                    // log the error message in the error stream
-                    Log.e("MainActivity", "loadDogImage error: ${error.localizedMessage}");
+                error -> {
+                    Toast.makeText(MainActivity.this, "Wystąpił błąd!", Toast.LENGTH_LONG).show();
                 }
         );
 
-        // add the json request object created above
-        // to the Volley request queue
         volleyQueue.add(jsonObjectRequest);
     }
 }
